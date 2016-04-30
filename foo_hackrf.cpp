@@ -12,18 +12,6 @@
 #define BYTES_PER_SAMPLE  2
 #define M_PI 3.14159265358979323846
 
-
-DECLARE_COMPONENT_VERSION(
-"HackRF Transmitter",
-"0.0.8",
-"Source Code:https://github.com/jocover/foo_hackrf \n"
-"DLL:https://github.com/jocover/foo_hackrf/blob/master/Release/foo_hackrf.dll \n");
-
-
-// This will prevent users from renaming your component around (important for proper troubleshooter behaviors) or loading multiple instances of it.
-VALIDATE_COMPONENT_FILENAME("foo_hackrf.dll");
-
-
 struct config {
 	double freq;
 	uint32_t gain;
@@ -32,6 +20,7 @@ struct config {
 	uint32_t enableamp;
 
 };
+
 static config default{
 	433.00,//433Mhz
 		90,
@@ -41,7 +30,7 @@ static config default{
 
 static bool running = false;
 
-static void RunDSPConfigPopup(const dsp_preset & p_data, HWND p_parent, dsp_preset_edit_callback & p_callback);
+//static void RunDSPConfigPopup(const dsp_preset & p_data, HWND p_parent, dsp_preset_edit_callback & p_callback);
 
 int _hackrf_tx_callback(hackrf_transfer *transfer);
 
