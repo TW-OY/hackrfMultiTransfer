@@ -31,7 +31,7 @@ struct wavStruct {
     float *data;
 };
 
-int main() {
+wavStruct wavOperator() {
     wavStruct wave;
     wave.fp = fopen("/Users/MakeitBetter/agnew_nabobs.wav", "rb");
 
@@ -99,5 +99,7 @@ int main() {
 
     wave.data = new float[wave.subChunk2Size / 4]();
     fread(wave.data, sizeof(float), wave.subChunk2Size/4, wave.fp);
+
+    return wave;
 }
 
