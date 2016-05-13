@@ -35,6 +35,9 @@ wavStruct wavOperator() {
     wavStruct wave;
     wave.fp = fopen("/Users/MakeitBetter/agnew_nabobs.wav", "rb");
 
+//    cout<< sizeof(float)<<endl;
+//    cout<< sizeof(uint32_t)<<endl;
+
 
     if (wave.fp == NULL) {
         printf("error");

@@ -15,6 +15,7 @@ std::mutex m_mutex;
 namespace my {
     int head = 0;
     int count = 0;
+    int tail = 0;
     int8_t **_buf = new int8_t* [BUF_NUM];
 }
 
@@ -171,10 +172,12 @@ void on_chunk() {
     // To retrieve the currently processed track, use get_cur_file().
     // Warning: the track is not always known - it's up to the calling component to provide this data and in some situations we'll be working with data that doesn't originate from an audio file.
     // If you rely on get_cur_file(), you should change need_track_change_mark() to return true to get accurate information when advancing between tracks.
-int main() {
-//        delete my::_buf
-        on_chunk();
+
+//dev
+//int main() {
+////        delete my::_buf
+//        on_chunk();
 //        std::cout<<"hello world"<<endl;
-        return 0;
-    }
+//        return 0;
+//    }
 
