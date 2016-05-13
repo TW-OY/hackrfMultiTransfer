@@ -1,6 +1,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <mutex>
+#include <iostream>
 #include "wavOperator.cpp"
 
 
@@ -11,7 +12,13 @@
 
 std::mutex m_mutex;
 
-int8_t ** _buf = NULL;
+namespace my {
+    int head = 0;
+    int count = 0;
+    int8_t **_buf = new int8_t* [BUF_NUM];
+}
+
+
 
 void interpolation(float * in_buf, uint32_t in_samples, float * out_buf, uint32_t out_samples) {
 
@@ -104,26 +111,30 @@ void modulation(float * input, float * output, uint32_t mode) {
 
 }
 
-void work(float *input_items) {
-    int count = 0;
-    int head = 0;
+void work(float *input_items, uint32_t len) {
 
     m_mutex.lock();
-    int8_t * buf = _buf[head];
+    int8_t * buf = my::_buf[my::head];
     for (uint32_t i = 0; i < BUF_LEN; i++) {
         buf[i] = (int8_t)(input_items[i] * 127.0);
     }
-    head = (head + 1) % BUF_NUM;
-    count++;
+    my::head = (my::head + 1) % BUF_NUM;
+    my::count++;
     m_mutex.unlock();
 
 }
 
 
-bool on_chunk() {
+void on_chunk() {
     wavStruct wave = wavOperator();
     uint16 nch = wave.header.numChannels;
     uint32 numSampleCount = wave.subChunk2Size * 8 / wave.header.bitPerSample / wave.header.numChannels;
+
+    if (my::_buf) {
+        for (unsigned int i = 0; i < BUF_NUM; ++i) {
+            my::_buf[i] = new int8_t[BUF_LEN]();
+        }
+    }
 
     float * audio_buf = new float[numSampleCount];
     float * new_audio_buf = new float[BUF_LEN]();
@@ -151,12 +162,19 @@ bool on_chunk() {
 
     for (uint32_t i = 0; i < (BUF_LEN * BYTES_PER_SAMPLE); i += BUF_LEN) {
 
-        work(IQ_buf + i);
+        work(IQ_buf + i, BUF_LEN);
     }
-
-    //AM mode
+//    delete audio_buf;
+//    delete new_audio_buf;
+//    delete IQ_buf;
 }
     // To retrieve the currently processed track, use get_cur_file().
     // Warning: the track is not always known - it's up to the calling component to provide this data and in some situations we'll be working with data that doesn't originate from an audio file.
     // If you rely on get_cur_file(), you should change need_track_change_mark() to return true to get accurate information when advancing between tracks.
+int main() {
+//        delete my::_buf
+        on_chunk();
+//        std::cout<<"hello world"<<endl;
+        return 0;
+    }
 
