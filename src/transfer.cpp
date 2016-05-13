@@ -23,7 +23,8 @@ int hackrf_tx_callback(int8_t *buffer, uint32_t length) {
 
 int main() {
     uint32_t hackrf_sample = 2000000;
-    hackrf_init();
+    uint32_t ret = hackrf_init();
+    cout<<ret<<endl;
 //    hackrf_device * _dev = NULL;
 //    double freq = 433.00 * 1000000;
 //    uint32_t gain = 90 / 100.0;

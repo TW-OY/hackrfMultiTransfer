@@ -21,6 +21,7 @@ struct config {
 
 };
 
+
 static config default{
 	433.00,//433Mhz
 		90,
