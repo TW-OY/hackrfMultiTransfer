@@ -1,8 +1,5 @@
-#include <stdlib.h>
-#include <stdio.h>
 #include <iostream>
 
-#define HACKRF_SAMPLE 2000000
 using namespace std;
 
 typedef unsigned int uint32;
@@ -30,6 +27,8 @@ struct wavStruct {
     uint32 subChunk2Size;
     float *data;
 };
+
+wavStruct wavOperator();
 
 wavStruct wavOperator() {
     wavStruct wave;
