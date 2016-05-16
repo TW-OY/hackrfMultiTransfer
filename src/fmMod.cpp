@@ -2,7 +2,6 @@
 #include <math.h>
 #include <mutex>
 #include <iostream>
-#include <libhackrf/hackrf.h>
 #include "wavOperator.cpp"
 
 
@@ -167,6 +166,7 @@ void on_chunk() {
     // Warning: the track is not always known - it's up to the calling component to provide this data and in some situations we'll be working with data that doesn't originate from an audio file.
     // If you rely on get_cur_file(), you should change need_track_change_mark() to return true to get accurate information when advancing between tracks.
 
+
 int hackrf_tx_callback(int8_t *buffer, uint32_t length) {
 
     m_mutex.lock();
@@ -183,6 +183,10 @@ int hackrf_tx_callback(int8_t *buffer, uint32_t length) {
 
     return 0;
 }
+
+int _hackrf_tx_callback(hackrf_transfer *transfer) {
+    return hackrf_tx_callback((int8_t *)transfer->buffer, transfer->valid_length);
+}
 void hackrfWork() {
     uint32_t hackrf_sample = 2000000;
     double freq = 433.00 * 1000000;
@@ -192,22 +196,21 @@ void hackrfWork() {
     hackrf_init();
     hackrf_device * _dev = NULL;
     int ret = hackrf_open(&_dev);
-    cout<<ret<<endl;
 
-//    if (ret != HACKRF_SUCCESS) {
-//        hackrf_close(_dev);
-//        cout<<"hackrf open error"<<endl;
-//    }
-//    else {
-//        hackrf_set_sample_rate(_dev, hackrf_sample);
-//        hackrf_set_baseband_filter_bandwidth(_dev, 1750000);
-//        hackrf_set_freq(_dev, freq);
-//        hackrf_set_txvga_gain(_dev, tx_vga);
-//        hackrf_set_amp_enable(_dev, enableamp);
-//        ret = hackrf_start_tx(_dev, hackrf_tx_callback(my::_buf, BUF_LEN), NULL);
-//        if (ret != HACKRF_SUCCESS) {
-//            hackrf_close(_dev);
-//            cout<<"hackrf transfer error"<<endl;
-//        }
-//    }
+    if (ret != HACKRF_SUCCESS) {
+        hackrf_close(_dev);
+        cout<<"hackrf open error"<<endl;
+    }
+    else {
+        hackrf_set_sample_rate(_dev, hackrf_sample);
+        hackrf_set_baseband_filter_bandwidth(_dev, 1750000);
+        hackrf_set_freq(_dev, freq);
+        hackrf_set_txvga_gain(_dev, tx_vga);
+        hackrf_set_amp_enable(_dev, enableamp);
+        ret = hackrf_start_tx(_dev, _hackrf_tx_callback, NULL);
+        if (ret != HACKRF_SUCCESS) {
+            hackrf_close(_dev);
+            cout<<"hackrf transfer error"<<endl;
+        }
+    }
 }
