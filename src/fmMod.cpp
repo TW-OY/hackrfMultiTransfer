@@ -4,7 +4,7 @@
 #include <iostream>
 #include "wavOperator.cpp"
 
-
+using namespace std;
 std::mutex m_mutex;
 
 namespace my {
@@ -120,9 +120,16 @@ void work(float *input_items, uint32_t len) {
 
 
 void on_chunk() {
-    wavStruct wave = wavOperator();
-    uint16 nch = wave.header.numChannels;
-    uint32 numSampleCount = wave.subChunk2Size * 8 / wave.header.bitPerSample / wave.header.numChannels;
+
+    char input[50];
+    stpcpy(input, "input.wav");
+
+    WaveData_t *wave = wavRead(input, strlen(input));
+    dumpDataToFile(*wave);
+
+
+    int nch = wave->header.numChannels;
+    uint32_t numSampleCount = wave->size * 8 / wave->bitDepth / wave->header.numChannels;
 
     if (my::_buf) {
         for (unsigned int i = 0; i < BUF_NUM; ++i) {
@@ -135,22 +142,22 @@ void on_chunk() {
     float * IQ_buf = new float[BUF_LEN * BYTES_PER_SAMPLE]();
 
 
-    if (nch == 1) {
+//    if (nch == 1) {
+//        for (uint32_t i = 0; i < numSampleCount; i++) {
+//
+//            audio_buf[i] = wave.data[i];
+//        }
+//    }
+
+//    else if (nch == 2) {
         for (uint32_t i = 0; i < numSampleCount; i++) {
 
-            audio_buf[i] = wave.data[i];
-        }
-    }
-
-    else if (nch == 2) {
-        for (uint32_t i = 0; i < numSampleCount; i++) {
-
-            audio_buf[i] = (wave.data[i * 2] + wave.data[i * 2 + 1]) / (float)2.0;
+            audio_buf[i] = (wave->samples[i * 2] + wave->samples[i * 2 + 1]) / (float)2.0;
         }
 
-    }
+//    }
 
-    interpolation(audio_buf, wave.subChunk2Size, new_audio_buf, BUF_LEN);
+    interpolation(audio_buf, wave->size, new_audio_buf, BUF_LEN);
 
     modulation(new_audio_buf, IQ_buf, 0);
 
