@@ -1,11 +1,23 @@
 #include "src/fmMod.h"
 #include <iostream>
+#include <unistd.h>
+
+int main(int argc,char* argv[]) {
 
 
-int main() {
+  //  Read_Wave(argv[1]);
 
-    on_chunk();
+    char * path="/Users/MakeitBetter/input.wav";
+
+    Read_Wave(path);
+
+   // on_chunk();
     hackrfWork();
+
+    while(true){
+        sleep(1);
+
+    }
     std::cout<<"finish"<<std::endl;
     return 0;
 }

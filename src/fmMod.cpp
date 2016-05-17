@@ -5,14 +5,13 @@
 #include "wavOperator.cpp"
 
 using namespace std;
-std::mutex m_mutex;
 
-namespace my {
-    int head = 0;
-    int count = 0;
-    int tail = 0;
-    int8_t **_buf = new int8_t* [BUF_NUM]();
-}
+int _audioSampleRate=0;
+float * _audioSampleBuf=NULL;
+float * _new_audio_buf=NULL;
+unsigned int offset=0;
+int _hackrfSampleRate=2000000;
+int32_t  numSampleCount;
 
 void interpolation(float * in_buf, uint32_t in_samples, float * out_buf, uint32_t out_samples) {
 
@@ -52,7 +51,7 @@ void interpolation(float * in_buf, uint32_t in_samples, float * out_buf, uint32_
 }
 
 
-void modulation(float * input, float * output, uint32_t mode) {
+void modulation(float * input, int8_t * output, uint32_t mode) {
     double fm_deviation = NULL;
     float gain = 0.9;
 
@@ -77,7 +76,7 @@ void modulation(float * input, float * output, uint32_t mode) {
                 audio_amp = (audio_amp > 0.0) ? 1.0 : -1.0;
             }
 
-            output[i * BYTES_PER_SAMPLE] = (float)audio_amp;
+            output[i * BYTES_PER_SAMPLE] = (int8_t)(audio_amp*127.0);
             output[i * BYTES_PER_SAMPLE + 1] = 0;
         }
     }
@@ -97,97 +96,61 @@ void modulation(float * input, float * output, uint32_t mode) {
             while (fm_phase < (float)(-M_PI))
                 fm_phase += (float)(2.0 * M_PI);
 
-            output[i * BYTES_PER_SAMPLE] = (float)sin(fm_phase);
-            output[i * BYTES_PER_SAMPLE + 1] = (float)cos(fm_phase);
+            output[i * BYTES_PER_SAMPLE] = (int8_t)(sin(fm_phase)*127.0);
+            output[i * BYTES_PER_SAMPLE + 1] =(int8_t)(cos(fm_phase)*127.0);
         }
     }
 
 
 }
 
-void work(float *input_items, uint32_t len) {
+void Read_Wave(char * path){
 
-    m_mutex.lock();
-    int8_t * buf = my::_buf[my::head];
-    for (uint32_t i = 0; i < BUF_LEN; i++) {
-        buf[i] = (int8_t)(input_items[i] * 127.0);
-    }
-    my::head = (my::head + 1) % BUF_NUM;
-    my::count++;
-    m_mutex.unlock();
-
-}
-
-
-void on_chunk() {
-
-    char input[50];
-    stpcpy(input, "/Users/MakeitBetter/input.wav");
-
-    WaveData_t *wave = wavRead(input, strlen(input));
-//    dumpDataToFile(*wave);
-
-
+    WaveData_t *wave = wavRead(path, strlen(path));
     int nch = wave->header.numChannels;
-//    uint32_t numSampleCount = wave->size * 8 / wave->bitDepth / wave->header.numChannels;
-    uint32_t  numSampleCount = wave->size / wave->header.blockAlign;
+    _audioSampleRate=wave->sampleRate;
+    numSampleCount = wave->size / wave->header.blockAlign;
 
-    if (my::_buf) {
-        for (unsigned int i = 0; i < BUF_NUM; ++i) {
-            my::_buf[i] = new int8_t[BUF_LEN]();
+    cout<<numSampleCount<<endl;
+    _audioSampleBuf=new float[numSampleCount]();
+    _new_audio_buf = new float[BUF_LEN/2]();
+
+    if(nch==1){
+
+        for(int i=0;i<numSampleCount;i++){
+
+            _audioSampleBuf[i] = wave->samples[i];
+        }
+
+    }else if(nch==2){
+
+            for(int i=0;i<numSampleCount;i++){
+
+                _audioSampleBuf[i] = (wave->samples[i * 2] + wave->samples[i * 2 + 1]) / (float)2.0;
+
+              //  cout<<"audio:"<<_audioSampleBuf[i]<<"sample:"<<wave->samples[i*2]<<endl;
+
+
         }
     }
 
-    float * audio_buf = new float[numSampleCount]();
-    float * new_audio_buf = new float[BUF_LEN]();
-    float * IQ_buf = new float[BUF_LEN * BYTES_PER_SAMPLE]();
-
-
-    if (nch == 1) {
-        for (uint32_t i = 0; i < numSampleCount; i++) {
-
-            audio_buf[i] = wave->samples[i];
-        }
-    }
-
-    else if (nch == 2) {
-        for (uint32_t i = 0; i < numSampleCount; i++) {
-
-            audio_buf[i] = (wave->samples[i * 2] + wave->samples[i * 2 + 1]) / (float)2.0;
-        }
-
-    }
-
-    interpolation(audio_buf, numSampleCount, new_audio_buf, BUF_LEN);
-
-    modulation(new_audio_buf, IQ_buf, 0);
-
-    for (uint32_t i = 0; i < (BUF_LEN * BYTES_PER_SAMPLE); i += BUF_LEN) {
-
-        work(IQ_buf + i, BUF_LEN);
-    }
-//    delete audio_buf;
-//    delete new_audio_buf;
-//    delete IQ_buf;
 }
-    // To retrieve the currently processed track, use get_cur_file().
-    // Warning: the track is not always known - it's up to the calling component to provide this data and in some situations we'll be working with data that doesn't originate from an audio file.
-    // If you rely on get_cur_file(), you should change need_track_change_mark() to return true to get accurate information when advancing between tracks.
 
 
 int hackrf_tx_callback(int8_t *buffer, uint32_t length) {
 
-    m_mutex.lock();
+    int nsample=(int)1.0*_audioSampleRate/_hackrfSampleRate*length/2;
 
-    if (my::count == 0) {
-        memset(buffer, 0, length);
+
+    interpolation(_audioSampleBuf+offset,nsample,_new_audio_buf,length/2);
+
+    modulation(_new_audio_buf,buffer,0);
+
+    offset+=nsample;
+
+    if(offset+nsample>numSampleCount){
+        return 1;
     }
-    else {
-        memcpy(buffer, my::_buf[my::tail], length);
-        my::tail = (my::tail + 1) % BUF_NUM;
-        my::count--;
-    }
-    m_mutex.unlock();
 
     return 0;
 }
@@ -196,7 +159,7 @@ int _hackrf_tx_callback(hackrf_transfer *transfer) {
     return hackrf_tx_callback((int8_t *)transfer->buffer, transfer->valid_length);
 }
 void hackrfWork() {
-    uint32_t hackrf_sample = 2000000;
+//    uint32_t hackrf_sample = 2000000;
     double freq = 433.00 * 1000000;
     uint32_t gain = 90 / 100.0;
     uint32_t tx_vga = 40;
@@ -210,8 +173,9 @@ void hackrfWork() {
         cout<<"hackrf open error"<<endl;
     }
     else {
-        hackrf_set_sample_rate(_dev, hackrf_sample);
-        hackrf_set_baseband_filter_bandwidth(_dev, 1750000);
+        hackrf_set_sample_rate(_dev, _hackrfSampleRate);
+        uint32_t bw=hackrf_compute_baseband_filter_bw_round_down_lt(_hackrfSampleRate);
+        hackrf_set_baseband_filter_bandwidth(_dev, bw);
         hackrf_set_freq(_dev, freq);
         hackrf_set_txvga_gain(_dev, tx_vga);
         hackrf_set_amp_enable(_dev, enableamp);
