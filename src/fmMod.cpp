@@ -83,7 +83,7 @@ void modulation(float * input, int8_t * output, uint32_t mode) {
         //FM mode
     else {
 
-        for (uint32_t i = 0; i < BUF_LEN; i++) {
+        for (uint32_t i = 0; i < BUF_LEN / 2; i++) {
 
             double	audio_amp = input[i] * gain;
 
@@ -139,8 +139,9 @@ void Read_Wave(char * path){
 
 int hackrf_tx_callback(int8_t *buffer, uint32_t length) {
 
-    int nsample=(int)1.0 * _audioSampleRate * length /_hackrfSampleRate / 2;
+//    int nsample=(int)1.0 * (_audioSampleRate * length) / (_hackrfSampleRate * 2);
 
+    int nsample = 2890;
 
     interpolation(_audioSampleBuf+offset,nsample,_new_audio_buf,length/2);
 
