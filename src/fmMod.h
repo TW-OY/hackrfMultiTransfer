@@ -18,5 +18,6 @@ int hackrf_tx_callback(int8_t *buffer, uint32_t length, int count);
 void hackrfWork();
 int _hackrf_tx_callback(hackrf_transfer *transfer);
 void Read_Wave(char * path);
+void makeCache();
 
 #endif //HACKRFMULTITRANSFER_WAVOPERATOR_H

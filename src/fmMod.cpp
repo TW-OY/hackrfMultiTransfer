@@ -1,5 +1,6 @@
 #include "fmMod.h"
 #include <math.h>
+#include <string.h>
 #include <mutex>
 #include <iostream>
 #include "wavOperator.cpp"
@@ -12,6 +13,9 @@ float * _new_audio_buf=NULL;
 unsigned int offset=0;
 int _hackrfSampleRate=2000000;
 int32_t  numSampleCount;
+int8_t ** iqCache;
+int xcount = 0;
+
 
 void interpolation(float * in_buf, uint32_t in_samples, float * out_buf, uint32_t out_samples) {
 
@@ -136,29 +140,36 @@ void Read_Wave(char * path){
 
 }
 
+void makeCache() {
 
-int hackrf_tx_callback(int8_t *buffer, uint32_t length) {
+    int nsample = (float)_audioSampleRate * (float)BUF_LEN / (float)_hackrfSampleRate / 2.0;
 
-    int nsample = (float)_audioSampleRate * (float)length / (float)_hackrfSampleRate / 2.0;
-
-//    int nsample = 2890;
-
-    interpolation(_audioSampleBuf+offset,nsample,_new_audio_buf,length/2);
-
-    modulation(_new_audio_buf,buffer,0);
-
-    offset+=nsample;
-
-    if(offset+nsample>numSampleCount){
-        return 1;
+    int8_t ** iqCache = new int8_t*[numSampleCount / nsample]();
+    for(int i = 0; i < numSampleCount / nsample; i++) {
+        iqCache[i] = new int8_t[BUF_LEN]();
     }
 
+    for(int i = 0; i < numSampleCount / nsample; i++) {
+        interpolation(_audioSampleBuf + (nsample * i), nsample, _new_audio_buf, BUF_LEN / 2);
+        modulation(_new_audio_buf, iqCache[i], 0);
+    }
+
+}
+
+
+int hackrf_tx_callback(int8_t *buffer, uint32_t length) {
+    int nsample = (float)_audioSampleRate * (float)length / (float)_hackrfSampleRate / 2.0;
+    if(xcount <= (numSampleCount / nsample)) {
+    memcpy(buffer, iqCache[xcount], length);
+    return 1;
+    }
     return 0;
 }
 
 int _hackrf_tx_callback(hackrf_transfer *transfer) {
     return hackrf_tx_callback((int8_t *)transfer->buffer, transfer->valid_length);
 }
+
 void hackrfWork() {
 //    uint32_t hackrf_sample = 2000000;
     double freq = 433.00 * 1000000;

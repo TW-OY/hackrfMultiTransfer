@@ -12,6 +12,7 @@ int main(int argc,char* argv[]) {
     Read_Wave(path);
 
    // on_chunk();
+    makeCache();
     hackrfWork();
 
     while(true){
