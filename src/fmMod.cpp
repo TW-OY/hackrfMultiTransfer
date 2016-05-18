@@ -139,9 +139,9 @@ void Read_Wave(char * path){
 
 int hackrf_tx_callback(int8_t *buffer, uint32_t length) {
 
-//    int nsample=(int)1.0 * (_audioSampleRate * length) / (_hackrfSampleRate * 2);
+    int nsample = (float)_audioSampleRate * (float)length / (float)_hackrfSampleRate / 2.0;
 
-    int nsample = 2890;
+//    int nsample = 2890;
 
     interpolation(_audioSampleBuf+offset,nsample,_new_audio_buf,length/2);
 
