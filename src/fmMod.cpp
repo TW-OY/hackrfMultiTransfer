@@ -160,9 +160,8 @@ void makeCache() {
 int hackrf_tx_callback(int8_t *buffer, uint32_t length) {
     int nsample = (float)_audioSampleRate * (float)length / (float)_hackrfSampleRate / 2.0;
     if(xcount <= (numSampleCount / nsample)) {
-    memcpy(buffer, iqCache[xcount], length);
+        memcpy(buffer, iqCache[xcount], length);
         xcount++;
-    return 1;
     }
     return 0;
 }
