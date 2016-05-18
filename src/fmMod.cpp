@@ -144,7 +144,7 @@ void makeCache() {
 
     int nsample = (float)_audioSampleRate * (float)BUF_LEN / (float)_hackrfSampleRate / 2.0;
 
-    int8_t ** iqCache = new int8_t*[numSampleCount / nsample]();
+    iqCache = new int8_t*[numSampleCount / nsample]();
     for(int i = 0; i < numSampleCount / nsample; i++) {
         iqCache[i] = new int8_t[BUF_LEN]();
     }

@@ -2,6 +2,8 @@
 #include <iostream>
 #include <unistd.h>
 
+using namespace std;
+
 int main(int argc,char* argv[]) {
 
 
@@ -10,9 +12,10 @@ int main(int argc,char* argv[]) {
     char * path="/Users/MakeitBetter/input.wav";
 
     Read_Wave(path);
+    makeCache();
+    cout<<"cache finish"<<endl;
 
    // on_chunk();
-    makeCache();
     hackrfWork();
 
     while(true){
