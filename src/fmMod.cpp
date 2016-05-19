@@ -15,7 +15,6 @@ int _hackrfSampleRate=2000000;
 int32_t  _numSampleCount;
 int8_t ** _iqCache;
 float _last_in_samples[4] = { 0.0, 0.0, 0.0, 0.0 };
-int _nsample = (float)_audioSampleRate * (float)BUF_LEN / (float)_hackrfSampleRate / 2.0;
 int _buffCount = 0;
 
 
@@ -142,6 +141,7 @@ void Read_Wave(char * path){
 }
 
 void makeCache() {
+    int _nsample = (float)_audioSampleRate * (float)BUF_LEN / (float)_hackrfSampleRate / 2.0;
 
 
     _iqCache = new int8_t*[_numSampleCount / _nsample]();
@@ -158,6 +158,7 @@ void makeCache() {
 
 
 int hackrf_tx_callback(int8_t *buffer, uint32_t length) {
+    int _nsample = (float)_audioSampleRate * (float)BUF_LEN / (float)_hackrfSampleRate / 2.0;
     if(_buffCount <= (_numSampleCount / _nsample)) {
         memcpy(buffer, _iqCache[_buffCount], length);
         _buffCount++;
