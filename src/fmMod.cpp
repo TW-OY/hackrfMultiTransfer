@@ -12,14 +12,15 @@ float * _audioSampleBuf=NULL;
 float * _new_audio_buf=NULL;
 unsigned int offset=0;
 int _hackrfSampleRate=2000000;
-int32_t  numSampleCount;
-int8_t ** iqCache;
-int xcount = 0;
+int32_t  _numSampleCount;
+int8_t ** _iqCache;
+float _last_in_samples[4] = { 0.0, 0.0, 0.0, 0.0 };
+int _nsample = (float)_audioSampleRate * (float)BUF_LEN / (float)_hackrfSampleRate / 2.0;
+int _buffCount = 0;
 
 
 void interpolation(float * in_buf, uint32_t in_samples, float * out_buf, uint32_t out_samples) {
 
-    float last_in_samples[4] = { 0.0, 0.0, 0.0, 0.0 };
     uint32_t i;		/* Input buffer index + 1. */
     uint32_t j = 0;	/* Output buffer index. */
     float pos;		/* Position relative to the input buffer
@@ -30,7 +31,7 @@ void interpolation(float * in_buf, uint32_t in_samples, float * out_buf, uint32_
     pos = (float)in_samples / (float)out_samples;
     while (pos < 1.0)
     {
-        out_buf[j] = last_in_samples[3] + (in_buf[0] - last_in_samples[3]) * pos;
+        out_buf[j] = _last_in_samples[3] + (in_buf[0] - _last_in_samples[3]) * pos;
         j++;
         pos = (float)(j + 1)* (float)in_samples / (float)out_samples;
     }
@@ -49,17 +50,17 @@ void interpolation(float * in_buf, uint32_t in_samples, float * out_buf, uint32_
     /* The last sample is always the same in input and output buffers. */
     out_buf[j] = in_buf[in_samples - 1];
 
-    /* Copy last samples to last_in_samples (reusing i and j). */
+    /* Copy last samples to _last_in_samples (reusing i and j). */
     for (i = in_samples - 4, j = 0; j < 4; i++, j++)
-        last_in_samples[j] = in_buf[i];
+        _last_in_samples[j] = in_buf[i];
 }
 
 
 void modulation(float * input, int8_t * output, uint32_t mode) {
-    double fm_deviation = NULL;
+    double fm_deviation = 0.0;
     float gain = 0.9;
 
-    double fm_phase = NULL;
+    double fm_phase = 0.0;
 
     int hackrf_sample = 2000000;
 
@@ -113,22 +114,22 @@ void Read_Wave(char * path){
     WaveData_t *wave = wavRead(path, strlen(path));
     int nch = wave->header.numChannels;
     _audioSampleRate=wave->sampleRate;
-    numSampleCount = wave->size / wave->header.blockAlign;
+    _numSampleCount = wave->size / wave->header.blockAlign;
 
-    cout<<numSampleCount<<endl;
-    _audioSampleBuf=new float[numSampleCount]();
+    cout<<_numSampleCount<<endl;
+    _audioSampleBuf=new float[_numSampleCount]();
     _new_audio_buf = new float[BUF_LEN/2]();
 
     if(nch==1){
 
-        for(int i=0;i<numSampleCount;i++){
+        for(int i=0;i<_numSampleCount;i++){
 
             _audioSampleBuf[i] = wave->samples[i];
         }
 
     }else if(nch==2){
 
-            for(int i=0;i<numSampleCount;i++){
+            for(int i=0;i<_numSampleCount;i++){
 
                 _audioSampleBuf[i] = (wave->samples[i * 2] + wave->samples[i * 2 + 1]) / (float)2.0;
 
@@ -142,26 +143,24 @@ void Read_Wave(char * path){
 
 void makeCache() {
 
-    int nsample = (float)_audioSampleRate * (float)BUF_LEN / (float)_hackrfSampleRate / 2.0;
 
-    iqCache = new int8_t*[numSampleCount / nsample]();
-    for(int i = 0; i < numSampleCount / nsample; i++) {
-        iqCache[i] = new int8_t[BUF_LEN]();
+    _iqCache = new int8_t*[_numSampleCount / _nsample]();
+    for(int i = 0; i < _numSampleCount / _nsample; i++) {
+        _iqCache[i] = new int8_t[BUF_LEN]();
     }
 
-    for(int i = 0; i < numSampleCount / nsample; i++) {
-        interpolation(_audioSampleBuf + (nsample * i), nsample, _new_audio_buf, BUF_LEN / 2);
-        modulation(_new_audio_buf, iqCache[i], 0);
+    for(int i = 0; i < _numSampleCount / _nsample; i++) {
+        interpolation(_audioSampleBuf + (_nsample * i), _nsample, _new_audio_buf, BUF_LEN / 2);
+        modulation(_new_audio_buf, _iqCache[i], 0);
     }
 
 }
 
 
 int hackrf_tx_callback(int8_t *buffer, uint32_t length) {
-    int nsample = (float)_audioSampleRate * (float)length / (float)_hackrfSampleRate / 2.0;
-    if(xcount <= (numSampleCount / nsample)) {
-        memcpy(buffer, iqCache[xcount], length);
-        xcount++;
+    if(_buffCount <= (_numSampleCount / _nsample)) {
+        memcpy(buffer, _iqCache[_buffCount], length);
+        _buffCount++;
     }
     return 0;
 }
@@ -171,7 +170,6 @@ int _hackrf_tx_callback(hackrf_transfer *transfer) {
 }
 
 void hackrfWork() {
-//    uint32_t hackrf_sample = 2000000;
     double freq = 433.00 * 1000000;
     uint32_t gain = 90 / 100.0;
     uint32_t tx_vga = 40;
