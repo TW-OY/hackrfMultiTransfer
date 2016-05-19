@@ -11,11 +11,11 @@ float * _audioSampleBuf=NULL;
 float * _new_audio_buf=NULL;
 unsigned int offset=0;
 int _hackrfSampleRate=2000000;
-int32_t  numSampleCount;
+int32_t  _numSampleCount;
+float last_in_samples[4] = { 0.0, 0.0, 0.0, 0.0 };
 
 void interpolation(float * in_buf, uint32_t in_samples, float * out_buf, uint32_t out_samples) {
 
-    float last_in_samples[4] = { 0.0, 0.0, 0.0, 0.0 };
     uint32_t i;		/* Input buffer index + 1. */
     uint32_t j = 0;	/* Output buffer index. */
     float pos;		/* Position relative to the input buffer
@@ -52,24 +52,22 @@ void interpolation(float * in_buf, uint32_t in_samples, float * out_buf, uint32_
 
 
 void modulation(float * input, int8_t * output, uint32_t mode) {
-    double fm_deviation = NULL;
+    double fm_deviation = 0.0;
     float gain = 0.9;
 
-    double fm_phase = NULL;
-
-    int hackrf_sample = 2000000;
+    double fm_phase = 0.0;
 
     if (mode == 0) {
-        fm_deviation = 2.0 * M_PI * 75.0e3 / hackrf_sample; // 75 kHz max deviation WBFM
+        fm_deviation = 2.0 * M_PI * 75.0e3 / _hackrfSampleRate; // 75 kHz max deviation WBFM
     }
     else if (mode == 1)
     {
-        fm_deviation = 2.0 * M_PI * 5.0e3 / hackrf_sample; // 5 kHz max deviation NBFM
+        fm_deviation = 2.0 * M_PI * 5.0e3 / _hackrfSampleRate; // 5 kHz max deviation NBFM
     }
 
     //AM mode
     if (mode == 2) {
-        for (uint32_t i = 0; i < BUF_LEN; i++) {
+        for (uint32_t i = 0; i < BUF_LEN / 2; i++) {
             double	audio_amp = input[i] * gain;
 
             if (fabs(audio_amp) > 1.0) {
@@ -109,22 +107,22 @@ void Read_Wave(char * path){
     WaveData_t *wave = wavRead(path, strlen(path));
     int nch = wave->header.numChannels;
     _audioSampleRate=wave->sampleRate;
-    numSampleCount = wave->size / wave->header.blockAlign;
+    _numSampleCount = wave->size / wave->header.blockAlign;
 
-    cout<<numSampleCount<<endl;
-    _audioSampleBuf=new float[numSampleCount]();
+    cout<<_numSampleCount<<endl;
+    _audioSampleBuf=new float[_numSampleCount]();
     _new_audio_buf = new float[BUF_LEN/2]();
 
     if(nch==1){
 
-        for(int i=0;i<numSampleCount;i++){
+        for(int i=0;i<_numSampleCount;i++){
 
             _audioSampleBuf[i] = wave->samples[i];
         }
 
     }else if(nch==2){
 
-            for(int i=0;i<numSampleCount;i++){
+            for(int i=0;i<_numSampleCount;i++){
 
                 _audioSampleBuf[i] = (wave->samples[i * 2] + wave->samples[i * 2 + 1]) / (float)2.0;
 
@@ -143,13 +141,13 @@ int hackrf_tx_callback(int8_t *buffer, uint32_t length) {
 
 //    int nsample = 2890;
 
-    interpolation(_audioSampleBuf+offset,nsample,_new_audio_buf,length/2);
+    interpolation(_audioSampleBuf+offset,nsample,_new_audio_buf,length/4);
 
-    modulation(_new_audio_buf,buffer,0);
+    modulation(_new_audio_buf,buffer,2);
 
     offset+=nsample;
 
-    if(offset+nsample>numSampleCount){
+    if(offset+nsample>_numSampleCount){
         return 1;
     }
 
