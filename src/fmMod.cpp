@@ -12,6 +12,9 @@ using namespace std;
 int _audioSampleRate=0;
 float * _audioSampleBuf=NULL;
 float * _new_audio_buf=NULL;
+float * _new_audio_buf1=NULL;
+float * _new_audio_buf2=NULL;
+float * _new_audio_buf3=NULL;
 unsigned int offset=0;
 int _hackrfSampleRate=2000000;
 int32_t  _numSampleCount;
@@ -29,6 +32,9 @@ void getPcmData(char *path){
     cout<<_numSampleCount<<endl;
     _audioSampleBuf=new float[_numSampleCount]();
     _new_audio_buf = new float[BUF_LEN/2]();
+    _new_audio_buf1 = new float[BUF_LEN/2]();
+    _new_audio_buf2 = new float[BUF_LEN/2]();
+    _new_audio_buf3 = new float[BUF_LEN/2]();
 
     if(nch==1){
 
@@ -48,19 +54,34 @@ void getPcmData(char *path){
 }
 
 void makeCache() {
-    int _nsample = (float)_audioSampleRate * (float)BUF_LEN / (float)_hackrfSampleRate / 2.0;
+    int _nsample = (float) _audioSampleRate * (float) BUF_LEN / (float) _hackrfSampleRate / 2.0;
 
 
-    _iqCache = new int8_t*[_numSampleCount / _nsample]();
-    for(int i = 0; i < _numSampleCount / _nsample; i++) {
+    _iqCache = new int8_t *[_numSampleCount / _nsample]();
+    for (int i = 0; i < _numSampleCount / _nsample; i++) {
         _iqCache[i] = new int8_t[BUF_LEN]();
     }
 
-    for(int i = 0; i < _numSampleCount / _nsample; i++) {
-        interpolation(_audioSampleBuf + (_nsample * i), _nsample, _new_audio_buf, BUF_LEN / 2);
-        modulation(_new_audio_buf, _iqCache[i], 1);
-    }
+#pragma omp parallel for
+    for (int i = 0; i < _numSampleCount / _nsample; i++) {
+        if (i < _numSampleCount / _nsample / 4) {
+            interpolation(_audioSampleBuf + (_nsample * i), _nsample, _new_audio_buf, BUF_LEN / 2);
+            modulation(_new_audio_buf, _iqCache[i], 0);
+        }
+        else if (i < _numSampleCount / _nsample / 4 * 2) {
+            interpolation(_audioSampleBuf + (_nsample * i), _nsample, _new_audio_buf1, BUF_LEN / 2);
+            modulation(_new_audio_buf1, _iqCache[i], 0);
+        }
+        else if (i < _numSampleCount / _nsample / 4 * 3) {
+            interpolation(_audioSampleBuf + (_nsample * i), _nsample, _new_audio_buf2, BUF_LEN / 2);
+            modulation(_new_audio_buf2, _iqCache[i], 0);
+        }
+        else if (i < _numSampleCount / _nsample) {
+            interpolation(_audioSampleBuf + (_nsample * i), _nsample, _new_audio_buf3, BUF_LEN / 2);
+            modulation(_new_audio_buf3, _iqCache[i], 0);
+        }
 
+    }
 }
 
 
