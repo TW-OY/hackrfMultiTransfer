@@ -25,7 +25,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <string.h>
 
 #define DEBUG 1
@@ -51,7 +50,7 @@ typedef struct _WaveHeader_t
     uint16_t bitDepth;			// 35-36	16bit support only
     char dataID[4];				// 37-40	"data"
     int32_t dataSize;			// 41-44
-} WaveHeader_t;
+} WaveHeader;
 
 typedef struct _WaveData_t
 {
@@ -60,35 +59,17 @@ typedef struct _WaveData_t
     int32_t size;
     int32_t sampleRate;
     uint16_t bitDepth;
-} WaveData_t;
+} WaveData;
 
 /*
  * Prototypes
  */
-void printHeaderInfo(WaveHeader_t);
-WaveData_t* wavRead(char[],size_t);
-void dumpDataToFile(WaveData_t);
+void printHeaderInfo(WaveHeader);
+WaveData* wavRead(char[],size_t);
+void dumpDataToFile(WaveData);
 
 
-
-//int main(int argc, char* argv[])
-//{
-//    if (DEBUG)
-//    {
-//        char input[50];
-//        if (argc == 1)
-//            strcpy(input, "input.wav");
-//        else
-//            strncpy(input, argv[1], 50);
-//
-//        WaveData_t *data = wavRead(input,strlen(input));
-//        if (data != NULL)
-//            dumpDataToFile(*data);
-//    }
-//    return EXIT_SUCCESS;
-//}
-
-WaveData_t* wavRead(char fileName[],size_t fileNameSize)
+WaveData* wavRead(char fileName[],size_t fileNameSize)
 {
     //
     if (fileName[fileNameSize] != '\0')
@@ -104,7 +85,7 @@ WaveData_t* wavRead(char fileName[],size_t fileNameSize)
         else
         {
             // Read header.
-            WaveHeader_t header;
+            WaveHeader header;
             fread(&header, sizeof(header), 1, filePtr);
 
             if (DEBUG)
@@ -123,7 +104,7 @@ WaveData_t* wavRead(char fileName[],size_t fileNameSize)
             else
             {
                 // Initialize the data struct.
-                WaveData_t *data = (WaveData_t*) malloc(sizeof(WaveData_t));
+                WaveData *data = (WaveData*) malloc(sizeof(WaveData));
                 data->header = header;
                 data->sampleRate = header.sampleRate;
                 data->bitDepth	= header.bitDepth;
@@ -142,7 +123,8 @@ WaveData_t* wavRead(char fileName[],size_t fileNameSize)
     return NULL;
 }
 
-void dumpDataToFile(WaveData_t waveData)
+
+void dumpDataToFile(WaveData waveData)
 {
     // Dump data into a text file.
     FILE* outputFilePtr = fopen("output.txt","w");
@@ -164,7 +146,7 @@ void dumpDataToFile(WaveData_t waveData)
 /*
  * Prints the wave header
  */
-void printHeaderInfo(WaveHeader_t hdr)
+void printHeaderInfo(WaveHeader hdr)
 {
     char buf[5];
     printf("Header Info:\n");

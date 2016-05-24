@@ -7,12 +7,12 @@ using namespace std;
 int main(int argc,char* argv[]) {
 
 
-  //  Read_Wave(argv[1]);
+  //  getPcmData(argv[1]);
 
-//    char * path="/Users/MakeitBetter/input.wav";
-    char * path="input.wav";
+    char * path="/Users/MakeitBetter/input.wav";
+//    char * path="input.wav";
 
-    Read_Wave(path);
+    getPcmData(path);
     makeCache();
     cout<<"cache finish"<<endl;
 
