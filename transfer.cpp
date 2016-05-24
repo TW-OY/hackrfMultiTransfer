@@ -1,4 +1,4 @@
-#include "src/fmMod.h"
+#include "txSrc/fmMod.h"
 #include <iostream>
 #include <unistd.h>
 
@@ -16,13 +16,10 @@ int main(int argc,char* argv[]) {
     makeCache();
     cout<<"cache finish"<<endl;
 
-   // on_chunk();
     hackrfWork();
 
     while(true){
         sleep(1);
 
     }
-    std::cout<<"finish"<<std::endl;
-    return 0;
 }
