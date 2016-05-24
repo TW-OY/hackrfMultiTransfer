@@ -12,11 +12,10 @@
 
 void interpolation(float * in_buf, uint32_t in_samples, float * out_buf, uint32_t out_samples);
 void modulation(float * input, int8_t * output, uint32_t mode);
-void work(float *input_items, uint32_t len);
-void on_chunk();
 int hackrf_tx_callback(int8_t *buffer, uint32_t length, int count);
 void hackrfWork();
 int _hackrf_tx_callback(hackrf_transfer *transfer);
-void Read_Wave(char * path);
+void getPcmData(char *path);
+void makeCache();
 
 #endif //HACKRFMULTITRANSFER_WAVOPERATOR_H

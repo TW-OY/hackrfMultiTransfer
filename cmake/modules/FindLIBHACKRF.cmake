@@ -36,7 +36,7 @@ else (LIBHACKRF_INCLUDE_DIR AND LIBHACKRF_LIBRARIES)
   FIND_LIBRARY(LIBHACKRF_LIBRARIES
     NAMES ${libhackrf_library_names}
     HINTS $ENV{LIBHACKRF_DIR}/lib ${PC_LIBHACKRF_LIBDIR}
-    PATHS /usr/local/lib /usr/lib /opt/local/lib ${PC_LIBHACKRF_LIBDIR} ${PC_LIBHACKRF_LIBRARY_DIRS} ${CMAKE_SOURCE_DIR}/../libhackrf/src
+    PATHS /usr/local/lib /usr/lib /usr/lib/arm-linux-gnueabihf /opt/local/lib ${PC_LIBHACKRF_LIBDIR} ${PC_LIBHACKRF_LIBRARY_DIRS} ${CMAKE_SOURCE_DIR}/../libhackrf/src
   )
 
   if(LIBHACKRF_INCLUDE_DIR)
